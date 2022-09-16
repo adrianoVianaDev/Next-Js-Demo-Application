@@ -1,0 +1,65 @@
+import Head from 'next/head';
+import MeetupList from '../components/meetups/MeetupList';
+import { MongoClient } from 'mongodb';
+import { Fragment } from 'react/cjs/react.production.min';
+
+function HomePage(props) {
+
+    return(
+        <Fragment>
+            <Head>
+                <title>React Meetups</title>
+                <meta
+                    name='description'
+                    content='Browse a huge list of highly active React meetups!'
+                />
+            </Head>
+            <MeetupList meetups={props.meetups}/>
+        </Fragment>
+    )
+}
+
+export async function getStaticProps(){ //will not be executed on user's side. It can be asyncronous, so the browser will wait for the data to be executed. Faster than getServerSideProps 
+    //fetch data from an API
+
+    const client = await MongoClient.connect(
+        'mongodb+srv://adrianovianadev:HdDNuT1a33BqrpJI@cluster0.gty4c.mongodb.net/meetups?retryWrites=true&w=majority'
+    );
+    
+    const db = client.db();
+
+    const meetupsCollection = db.collection('meetups');
+
+    const meetups = await meetupsCollection.find().toArray();
+
+    client.close();
+
+    return{
+        props: {
+            meetups: meetups.map(meetup => ({
+              title: meetup.data.title,
+              address: meetup.data.address,
+              image: meetup.data.image,
+              id: meetup._id.toString()
+            }))
+          },
+    
+        revalidate: 10 // the time in seconds that the page will be re pre-generated on the server after deployment
+    };
+}
+
+/*
+export async function getServerSideProps(context){ //alternative code. Better used if the data changes every second.
+    const req = context.req;
+    const res = context.res;
+
+    //fetch data from an API
+    
+    return{
+        props:{
+            meetups: DUMMY_MEETUPS
+        }
+    };
+}*/
+
+export default HomePage;
